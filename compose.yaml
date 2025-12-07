@@ -1,0 +1,39 @@
+name: "dataLakeMinio"
+services:
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - datalakeminio
+  aws-cli:
+    image: amazon/aws-cli
+    entrypoint: bash -c "sleep infinity"
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    volumes:
+      - ./sample-data:/data
+    networks:
+      - datalakeminio
+
+  nifi:
+    image: apache/nifi
+    environment:
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=ctsBtRBKHRAx69EqUghvvgEvjnaLjFEB
+    volumes:
+      - ./sample-data:/data # moram dodati dva fajla za Parque
+      - ./nifi/postgresql-42.7.8.jar:/opt/nifi/nifi-current/lib/postgresql-42.7.8.jar
+      - ./nifi/nifi-parquet-nar-2.6.0.nar:/opt/nifi/nifi-current/lib/nifi-parquet-nar-2.6.0.nar # NiFi Parquet extension
+      - ./nifi/nifi-hadoop-libraries-nar-2.6.0.nar:/opt/nifi/nifi-current/lib/nifi-hadoop-libraries-nar-2.6.0.nar # NiFi Hadoop Libraries
+    ports:
+      - "8443:8443"
+    networks:
+      - datalakeminio
+networks:
+  datalakeminio:
+    name: datalakeminio
+    driver: bridge
